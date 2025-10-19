@@ -1,0 +1,21 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Otevřená data Praha",
+  "name_for_model": "opendata_praha",
+  "description_for_human": "Připojení k otevřeným datům Prahy přes MCP server. Umožňuje vyhledávat datasety, získávat metadata a náhledy zdrojů.",
+  "description_for_model": "MCP server exposing Prague open data catalog through standard actions.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://data.praha.eu/api/3/action/openapi"
+  },
+  "capabilities": {
+    "actions": [
+      "searchDatasets",
+      "getDatasetMetadata",
+      "getResourcePreview"
+    ]
+  }
+}
