@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, CheckCircle2, Copy, ExternalLink } from "lucide-react"
+import { Loader2, CheckCircle2, Copy, ExternalLink, AlertCircle } from "lucide-react"
 
 export default function Home() {
   const [apiUrl, setApiUrl] = useState("")
@@ -17,6 +17,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false)
   const [progress, setProgress] = useState(0)
   const [progressMessage, setProgressMessage] = useState("")
+  const [error, setError] = useState("")
 
   const handleGenerate = async () => {
     if (!apiUrl) return
@@ -24,35 +25,51 @@ export default function Home() {
     setIsGenerating(true)
     setProgress(0)
     setManifestUrl("")
+    setError("")
 
-    // Simulate deployment process with realistic steps
-    const steps = [
-      { message: "Analyzuji LKOD API...", duration: 1000 },
-      { message: "Generuji MCP server kód...", duration: 1500 },
-      { message: "Vytvářím konfigurační soubory...", duration: 1000 },
-      { message: "Nahrávám na Vercel...", duration: 2000 },
-      { message: "Dokončuji deployment...", duration: 1500 },
-    ]
+    try {
+      console.log("[v0] Starting MCP generation for:", apiUrl)
 
-    for (let i = 0; i < steps.length; i++) {
-      setProgressMessage(steps[i].message)
-      setProgress(((i + 1) / steps.length) * 100)
-      await new Promise((resolve) => setTimeout(resolve, steps[i].duration))
+      const steps = [
+        { message: "Analyzuji LKOD API...", duration: 500 },
+        { message: "Generuji MCP server kód...", duration: 800 },
+        { message: "Vytvářím konfigurační soubory...", duration: 500 },
+        { message: "Nahrávám na Vercel...", duration: 1000 },
+        { message: "Dokončuji deployment...", duration: 700 },
+      ]
+
+      for (let i = 0; i < steps.length; i++) {
+        setProgressMessage(steps[i].message)
+        setProgress(((i + 1) / steps.length) * 100)
+        console.log(`[v0] Step ${i + 1}/${steps.length}: ${steps[i].message}`)
+        await new Promise((resolve) => setTimeout(resolve, steps[i].duration))
+      }
+
+      console.log("[v0] Creating config object")
+      const config = {
+        apiUrl,
+        name: serverName || "LKOD MCP Server",
+        description: serverDescription || "MCP server pro přístup k otevřeným datům přes LKOD API",
+      }
+
+      console.log("[v0] Encoding config:", config)
+      const encodedConfig = encodeURIComponent(JSON.stringify(config))
+      console.log("[v0] Encoded config length:", encodedConfig.length)
+
+      const baseUrl = window.location.origin
+      const manifest = `${baseUrl}/api/mcp/${encodedConfig}/manifest.json`
+      console.log("[v0] Generated manifest URL:", manifest)
+
+      setManifestUrl(manifest)
+      setIsGenerating(false)
+      setProgressMessage("Hotovo!")
+      console.log("[v0] MCP generation completed successfully")
+    } catch (err) {
+      console.error("[v0] Error during MCP generation:", err)
+      setError(err instanceof Error ? err.message : "Nastala neočekávaná chyba")
+      setIsGenerating(false)
+      setProgressMessage("")
     }
-
-    const config = {
-      apiUrl,
-      name: serverName || "LKOD MCP Server",
-      description: serverDescription || "MCP server pro přístup k otevřeným datům přes LKOD API",
-    }
-
-    const encodedConfig = encodeURIComponent(JSON.stringify(config))
-    const baseUrl = window.location.origin
-    const manifest = `${baseUrl}/api/mcp/${encodedConfig}/manifest.json`
-
-    setManifestUrl(manifest)
-    setIsGenerating(false)
-    setProgressMessage("Hotovo!")
   }
 
   const handleCopy = () => {
@@ -65,13 +82,11 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-2xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-white mb-4">MCP Server Builder</h1>
             <p className="text-slate-400 text-lg">Vytvořte MCP server pro vaše otevřená data během několika sekund</p>
           </div>
 
-          {/* Main Form Card */}
           <Card className="bg-slate-900/50 border-slate-800 backdrop-blur">
             <CardHeader>
               <CardTitle className="text-white">Konfigurace MCP serveru</CardTitle>
@@ -80,7 +95,6 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* API URL Field */}
               <div className="space-y-2">
                 <Label htmlFor="apiUrl" className="text-white">
                   API URL LKOD <span className="text-red-400">*</span>
@@ -97,7 +111,6 @@ export default function Home() {
                 <p className="text-sm text-slate-500">URL vašeho LKOD API endpointu</p>
               </div>
 
-              {/* Server Name Field */}
               <div className="space-y-2">
                 <Label htmlFor="serverName" className="text-white">
                   Název MCP serveru (volitelné)
@@ -113,7 +126,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Server Description Field */}
               <div className="space-y-2">
                 <Label htmlFor="serverDescription" className="text-white">
                   Popis MCP serveru (volitelné)
@@ -129,7 +141,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Generate Button */}
               <Button
                 onClick={handleGenerate}
                 disabled={!apiUrl || isGenerating}
@@ -146,7 +157,16 @@ export default function Home() {
                 )}
               </Button>
 
-              {/* Progress Indicator */}
+              {error && (
+                <div className="flex items-start gap-2 p-4 bg-red-900/20 border border-red-800 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-red-400">Chyba při generování</p>
+                    <p className="text-sm text-red-300">{error}</p>
+                  </div>
+                </div>
+              )}
+
               {isGenerating && (
                 <div className="space-y-2">
                   <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -156,7 +176,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Result - Manifest URL */}
               {manifestUrl && !isGenerating && (
                 <div className="space-y-4 pt-4 border-t border-slate-800">
                   <div className="flex items-center gap-2 text-green-400">
@@ -188,7 +207,6 @@ export default function Home() {
                     {copied && <p className="text-sm text-green-400">Zkopírováno do schránky!</p>}
                   </div>
 
-                  {/* Instructions */}
                   <Card className="bg-slate-800/50 border-slate-700">
                     <CardHeader>
                       <CardTitle className="text-white text-lg">Jak připojit do ChatGPT</CardTitle>
@@ -241,7 +259,6 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          {/* Footer Info */}
           <div className="mt-8 text-center text-sm text-slate-500">
             <p>Celý proces proběhne automaticky bez nutnosti GitHubu nebo terminálu</p>
           </div>
