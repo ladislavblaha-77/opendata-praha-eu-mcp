@@ -5,8 +5,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { config } = await params
     const body = await request.json()
 
-    // Decode configuration from URL
-    const decodedConfig = JSON.parse(atob(config))
+    const decodedConfig = JSON.parse(decodeURIComponent(config))
     const { apiUrl } = decodedConfig
 
     const { tool, arguments: args } = body

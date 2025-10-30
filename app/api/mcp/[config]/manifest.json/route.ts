@@ -4,8 +4,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { config } = await params
 
-    // Decode configuration from URL
-    const decodedConfig = JSON.parse(atob(config))
+    const decodedConfig = JSON.parse(decodeURIComponent(config))
     const { apiUrl, name, description } = decodedConfig
 
     // Generate MCP manifest

@@ -46,7 +46,7 @@ export default function Home() {
       description: serverDescription || "MCP server pro přístup k otevřeným datům přes LKOD API",
     }
 
-    const encodedConfig = btoa(JSON.stringify(config))
+    const encodedConfig = encodeURIComponent(JSON.stringify(config))
     const baseUrl = window.location.origin
     const manifest = `${baseUrl}/api/mcp/${encodedConfig}/manifest.json`
 
