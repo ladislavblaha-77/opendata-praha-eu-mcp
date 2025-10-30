@@ -1,32 +1,29 @@
-import { createMCPHandler } from "mcp-handler"
+import { createMcpHandler } from "mcp-handler"
 import { z } from "zod"
 
 export const maxDuration = 60
 
-export const GET = async (request: Request, { params }: { params: Promise<{ config: string }> }) => {
-  const { config } = await params
-
+const createHandler = async (config: string) => {
   let decodedConfig
   try {
     decodedConfig = JSON.parse(decodeURIComponent(config))
   } catch (error) {
-    return new Response("Invalid configuration", { status: 400 })
+    return null
   }
 
   const { apiUrl, name, description } = decodedConfig
 
-  const handler = createMCPHandler({
-    name: name || "LKOD MCP Server",
-    version: "1.0.0",
-    description: description || "MCP server pro přístup k otevřeným datům přes LKOD API",
-    tools: {
-      search_datasets: {
-        description: "Vyhledá datasety v LKOD katalogu podle klíčových slov",
-        parameters: z.object({
+  const handler = createMcpHandler(
+    (server) => {
+      // Tool 1: Search datasets
+      server.tool(
+        "search_datasets",
+        "Vyhledá datasety v LKOD katalogu podle klíčových slov",
+        {
           query: z.string().describe("Vyhledávací dotaz (název datasetu, klíčová slova)"),
           limit: z.number().default(10).describe("Maximální počet výsledků"),
-        }),
-        execute: async ({ query, limit }) => {
+        },
+        async ({ query, limit }) => {
           try {
             const searchUrl = `${apiUrl}package_search?q=${encodeURIComponent(query)}&rows=${limit}`
             const response = await fetch(searchUrl)
@@ -67,13 +64,16 @@ export const GET = async (request: Request, { params }: { params: Promise<{ conf
             }
           }
         },
-      },
-      get_dataset: {
-        description: "Získá detailní informace o konkrétním datasetu",
-        parameters: z.object({
+      )
+
+      // Tool 2: Get dataset details
+      server.tool(
+        "get_dataset",
+        "Získá detailní informace o konkrétním datasetu",
+        {
           id: z.string().describe("ID datasetu"),
-        }),
-        execute: async ({ id }) => {
+        },
+        async ({ id }) => {
           try {
             const detailUrl = `${apiUrl}package_show?id=${encodeURIComponent(id)}`
             const response = await fetch(detailUrl)
@@ -117,14 +117,17 @@ export const GET = async (request: Request, { params }: { params: Promise<{ conf
             }
           }
         },
-      },
-      list_datasets: {
-        description: "Vypíše všechny dostupné datasety",
-        parameters: z.object({
+      )
+
+      // Tool 3: List datasets
+      server.tool(
+        "list_datasets",
+        "Vypíše všechny dostupné datasety",
+        {
           limit: z.number().default(20).describe("Maximální počet výsledků"),
           offset: z.number().default(0).describe("Offset pro stránkování"),
-        }),
-        execute: async ({ limit, offset }) => {
+        },
+        async ({ limit, offset }) => {
           try {
             const listUrl = `${apiUrl}package_list?limit=${limit}&offset=${offset}`
             const response = await fetch(listUrl)
@@ -156,11 +159,29 @@ export const GET = async (request: Request, { params }: { params: Promise<{ conf
             }
           }
         },
-      },
+      )
     },
-  })
+    {
+      name: name || "LKOD MCP Server",
+      version: "1.0.0",
+      description: description || "MCP server pro přístup k otevřeným datům přes LKOD API",
+    },
+    { basePath: "/api/mcp" },
+  )
+
+  return handler
+}
+
+export const GET = async (request: Request, { params }: { params: Promise<{ config: string }> }) => {
+  const { config } = await params
+  const handler = await createHandler(config)
+
+  if (!handler) {
+    return new Response("Invalid configuration", { status: 400 })
+  }
 
   return handler(request)
 }
 
 export const POST = GET
+export const DELETE = GET
