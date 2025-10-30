@@ -1,103 +1,166 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { createMCPHandler } from "mcp-handler"
+import { z } from "zod"
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ config: string }> }) {
+export const maxDuration = 60
+
+export const GET = async (request: Request, { params }: { params: Promise<{ config: string }> }) => {
+  const { config } = await params
+
+  let decodedConfig
   try {
-    const { config } = await params
-    const body = await request.json()
-
-    const decodedConfig = JSON.parse(decodeURIComponent(config))
-    const { apiUrl } = decodedConfig
-
-    const { tool, arguments: args } = body
-
-    console.log("[v0] MCP tool call:", tool, args)
-
-    // Handle different tool calls
-    switch (tool) {
-      case "search_datasets": {
-        const { query, limit = 10 } = args
-
-        // Call LKOD API to search datasets
-        const searchUrl = `${apiUrl}package_search?q=${encodeURIComponent(query)}&rows=${limit}`
-        const response = await fetch(searchUrl)
-        const data = await response.json()
-
-        return NextResponse.json({
-          success: true,
-          result: {
-            count: data.result?.count || 0,
-            datasets:
-              data.result?.results?.map((pkg: any) => ({
-                id: pkg.id,
-                name: pkg.name,
-                title: pkg.title,
-                notes: pkg.notes,
-                organization: pkg.organization?.title,
-                tags: pkg.tags?.map((t: any) => t.name),
-              })) || [],
-          },
-        })
-      }
-
-      case "get_dataset": {
-        const { id } = args
-
-        // Call LKOD API to get dataset details
-        const detailUrl = `${apiUrl}package_show?id=${encodeURIComponent(id)}`
-        const response = await fetch(detailUrl)
-        const data = await response.json()
-
-        return NextResponse.json({
-          success: true,
-          result: {
-            id: data.result?.id,
-            name: data.result?.name,
-            title: data.result?.title,
-            notes: data.result?.notes,
-            organization: data.result?.organization?.title,
-            tags: data.result?.tags?.map((t: any) => t.name),
-            resources: data.result?.resources?.map((r: any) => ({
-              id: r.id,
-              name: r.name,
-              format: r.format,
-              url: r.url,
-              description: r.description,
-            })),
-          },
-        })
-      }
-
-      case "list_datasets": {
-        const { limit = 20, offset = 0 } = args
-
-        // Call LKOD API to list datasets
-        const listUrl = `${apiUrl}package_list?limit=${limit}&offset=${offset}`
-        const response = await fetch(listUrl)
-        const data = await response.json()
-
-        return NextResponse.json({
-          success: true,
-          result: {
-            datasets: data.result || [],
-          },
-        })
-      }
-
-      default:
-        return NextResponse.json({ success: false, error: "Unknown tool" }, { status: 400 })
-    }
+    decodedConfig = JSON.parse(decodeURIComponent(config))
   } catch (error) {
-    console.error("[v0] Error handling MCP request:", error)
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
+    return new Response("Invalid configuration", { status: 400 })
   }
-}
 
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+  const { apiUrl, name, description } = decodedConfig
+
+  const handler = createMCPHandler({
+    name: name || "LKOD MCP Server",
+    version: "1.0.0",
+    description: description || "MCP server pro přístup k otevřeným datům přes LKOD API",
+    tools: {
+      search_datasets: {
+        description: "Vyhledá datasety v LKOD katalogu podle klíčových slov",
+        parameters: z.object({
+          query: z.string().describe("Vyhledávací dotaz (název datasetu, klíčová slova)"),
+          limit: z.number().default(10).describe("Maximální počet výsledků"),
+        }),
+        execute: async ({ query, limit }) => {
+          try {
+            const searchUrl = `${apiUrl}package_search?q=${encodeURIComponent(query)}&rows=${limit}`
+            const response = await fetch(searchUrl)
+            const data = await response.json()
+
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    {
+                      count: data.result?.count || 0,
+                      datasets:
+                        data.result?.results?.map((pkg: any) => ({
+                          id: pkg.id,
+                          name: pkg.name,
+                          title: pkg.title,
+                          notes: pkg.notes,
+                          organization: pkg.organization?.title,
+                          tags: pkg.tags?.map((t: any) => t.name),
+                        })) || [],
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            }
+          } catch (error) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+                },
+              ],
+              isError: true,
+            }
+          }
+        },
+      },
+      get_dataset: {
+        description: "Získá detailní informace o konkrétním datasetu",
+        parameters: z.object({
+          id: z.string().describe("ID datasetu"),
+        }),
+        execute: async ({ id }) => {
+          try {
+            const detailUrl = `${apiUrl}package_show?id=${encodeURIComponent(id)}`
+            const response = await fetch(detailUrl)
+            const data = await response.json()
+
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    {
+                      id: data.result?.id,
+                      name: data.result?.name,
+                      title: data.result?.title,
+                      notes: data.result?.notes,
+                      organization: data.result?.organization?.title,
+                      tags: data.result?.tags?.map((t: any) => t.name),
+                      resources: data.result?.resources?.map((r: any) => ({
+                        id: r.id,
+                        name: r.name,
+                        format: r.format,
+                        url: r.url,
+                        description: r.description,
+                      })),
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            }
+          } catch (error) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+                },
+              ],
+              isError: true,
+            }
+          }
+        },
+      },
+      list_datasets: {
+        description: "Vypíše všechny dostupné datasety",
+        parameters: z.object({
+          limit: z.number().default(20).describe("Maximální počet výsledků"),
+          offset: z.number().default(0).describe("Offset pro stránkování"),
+        }),
+        execute: async ({ limit, offset }) => {
+          try {
+            const listUrl = `${apiUrl}package_list?limit=${limit}&offset=${offset}`
+            const response = await fetch(listUrl)
+            const data = await response.json()
+
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    {
+                      datasets: data.result || [],
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            }
+          } catch (error) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+                },
+              ],
+              isError: true,
+            }
+          }
+        },
+      },
     },
   })
+
+  return handler(request)
 }
+
+export const POST = GET

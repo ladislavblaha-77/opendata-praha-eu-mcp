@@ -57,8 +57,8 @@ export default function Home() {
       console.log("[v0] Encoded config length:", encodedConfig.length)
 
       const baseUrl = window.location.origin
-      const manifest = `${baseUrl}/api/mcp/${encodedConfig}/manifest.json`
-      console.log("[v0] Generated manifest URL:", manifest)
+      const manifest = `${baseUrl}/api/mcp/${encodedConfig}`
+      console.log("[v0] Generated MCP URL:", manifest)
 
       setManifestUrl(manifest)
       setIsGenerating(false)
@@ -185,7 +185,7 @@ export default function Home() {
 
                   <div className="space-y-2">
                     <Label htmlFor="manifestUrl" className="text-white">
-                      Manifest URL
+                      MCP Server URL
                     </Label>
                     <div className="flex gap-2">
                       <Input
