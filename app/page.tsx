@@ -40,15 +40,15 @@ export default function Home() {
       await new Promise((resolve) => setTimeout(resolve, steps[i].duration))
     }
 
-    // Generate a unique deployment URL based on the server name or API URL
-    const slug = (serverName || "mcp-server")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
+    const config = {
+      apiUrl,
+      name: serverName || "LKOD MCP Server",
+      description: serverDescription || "MCP server pro přístup k otevřeným datům přes LKOD API",
+    }
 
-    const uniqueId = Math.random().toString(36).substring(2, 8)
-    const deploymentUrl = `https://${slug}-${uniqueId}.vercel.app`
-    const manifest = `${deploymentUrl}/manifest.json`
+    const encodedConfig = btoa(JSON.stringify(config))
+    const baseUrl = window.location.origin
+    const manifest = `${baseUrl}/api/mcp/${encodedConfig}/manifest.json`
 
     setManifestUrl(manifest)
     setIsGenerating(false)
