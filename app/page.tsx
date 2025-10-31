@@ -30,7 +30,9 @@ export default function Home() {
         openapi: "3.1.0",
         info: {
           title: name || "LKOD MCP Server",
-          description: description || "MCP server pro přístup k otevřeným datům přes LKOD API",
+          description:
+            (description || "MCP server pro přístup k otevřeným datům přes LKOD API") +
+            "\n\nAutomaticky detekuje a zpracovává JSON-LD formát.",
           version: "1.0.0",
         },
         servers: [
@@ -42,7 +44,7 @@ export default function Home() {
           "/catalog": {
             get: {
               operationId: "getCatalog",
-              summary: "Získat katalog dat",
+              summary: "Získat katalog dat (podporuje JSON-LD)",
               parameters: [
                 {
                   name: "publishers",
@@ -74,16 +76,90 @@ export default function Home() {
               ],
               responses: {
                 "200": {
-                  description: "Úspěšná odpověď",
+                  description: "Úspěšná odpověď (JSON-LD automaticky převeden na JSON)",
                   content: {
                     "application/json": {
                       schema: {
                         type: "object",
                         properties: {
+                          iri: {
+                            type: "string",
+                            description: "IRI katalogu",
+                          },
+                          title: {
+                            type: "string",
+                            description: "Název katalogu",
+                          },
+                          description: {
+                            type: "string",
+                            description: "Popis katalogu",
+                          },
                           datasets: {
                             type: "array",
+                            description: "Seznam IRI datových sad",
                             items: {
-                              type: "object",
+                              type: "string",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "/dataset": {
+            get: {
+              operationId: "getDatasetList",
+              summary: "Získat seznam datových sad (podporuje JSON-LD)",
+              parameters: [
+                {
+                  name: "publisher",
+                  in: "query",
+                  required: false,
+                  schema: {
+                    type: "string",
+                  },
+                  description: "Filtruje podle publishera",
+                },
+                {
+                  name: "limit",
+                  in: "query",
+                  required: false,
+                  schema: {
+                    type: "integer",
+                  },
+                  description: "Maximální počet výsledků",
+                },
+                {
+                  name: "offset",
+                  in: "query",
+                  required: false,
+                  schema: {
+                    type: "integer",
+                  },
+                  description: "Offset pro stránkování",
+                },
+              ],
+              responses: {
+                "200": {
+                  description: "Seznam datových sad (JSON-LD automaticky převeden)",
+                  content: {
+                    "application/json": {
+                      schema: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            iri: {
+                              type: "string",
+                            },
+                            title: {
+                              type: "string",
+                            },
+                            description: {
+                              type: "string",
                             },
                           },
                         },
