@@ -45,22 +45,19 @@ export default function Home() {
         await new Promise((resolve) => setTimeout(resolve, steps[i].duration))
       }
 
-      console.log("[v0] Creating config object")
-      const config = {
+      console.log("[v0] Creating MCP server URL")
+      const baseUrl = window.location.origin
+
+      const params = new URLSearchParams({
         apiUrl,
         name: serverName || "LKOD MCP Server",
         description: serverDescription || "MCP server pro přístup k otevřeným datům přes LKOD API",
-      }
+      })
 
-      console.log("[v0] Encoding config:", config)
-      const encodedConfig = encodeURIComponent(JSON.stringify(config))
-      console.log("[v0] Encoded config length:", encodedConfig.length)
+      const mcpUrl = `${baseUrl}/api/mcp?${params.toString()}`
+      console.log("[v0] Generated MCP URL:", mcpUrl)
 
-      const baseUrl = window.location.origin
-      const manifest = `${baseUrl}/api/mcp/${encodedConfig}`
-      console.log("[v0] Generated MCP URL:", manifest)
-
-      setManifestUrl(manifest)
+      setManifestUrl(mcpUrl)
       setIsGenerating(false)
       setProgressMessage("Hotovo!")
       console.log("[v0] MCP generation completed successfully")
