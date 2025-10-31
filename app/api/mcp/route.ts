@@ -5,6 +5,81 @@ export const maxDuration = 60
 
 const handler = createMcpHandler(
   (server) => {
+    server.tool(
+      "get_catalog",
+      "Vrací základní metadata katalogu otevřených dat MHMP (DCAT-AP-CZ)",
+      {},
+      async (params, { request }) => {
+        try {
+          const url = new URL(request.url)
+          const apiUrl =
+            url.searchParams.get("apiUrl") || "https://api.opendata.praha.eu/lod/catalog?publishers%5B%5D=mhmp"
+
+          const response = await fetch(apiUrl)
+          const data = await response.json()
+
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(data, null, 2),
+              },
+            ],
+          }
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+              },
+            ],
+            isError: true,
+          }
+        }
+      },
+    )
+
+    server.tool(
+      "get_dataset_list",
+      "Vrací seznam všech datových sad publikovaných MHMP (včetně názvů, IRI a popisu)",
+      {
+        limit: z.number().optional().describe("Maximální počet výsledků"),
+        offset: z.number().optional().describe("Offset pro stránkování"),
+      },
+      async ({ limit, offset }, { request }) => {
+        try {
+          const url = new URL(request.url)
+          let datasetUrl = "https://api.opendata.praha.eu/lod/dataset?publisher=mhmp"
+
+          if (limit) datasetUrl += `&limit=${limit}`
+          if (offset) datasetUrl += `&offset=${offset}`
+
+          const response = await fetch(datasetUrl)
+          const data = await response.json()
+
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(data, null, 2),
+              },
+            ],
+          }
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+              },
+            ],
+            isError: true,
+          }
+        }
+      },
+    )
+
     // Tool 1: Search datasets
     server.tool(
       "search_datasets",

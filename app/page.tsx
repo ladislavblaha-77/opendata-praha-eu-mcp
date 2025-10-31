@@ -14,10 +14,95 @@ export default function Home() {
   const [serverDescription, setServerDescription] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [manifestUrl, setManifestUrl] = useState("")
+  const [openApiSchema, setOpenApiSchema] = useState("")
   const [copied, setCopied] = useState(false)
+  const [copiedSchema, setCopiedSchema] = useState(false)
   const [progress, setProgress] = useState(0)
   const [progressMessage, setProgressMessage] = useState("")
   const [error, setError] = useState("")
+
+  const generateOpenApiSchema = (apiUrl: string, name: string, description: string) => {
+    try {
+      const url = new URL(apiUrl)
+      const baseUrl = `${url.protocol}//${url.host}${url.pathname.replace(/\/$/, "")}`
+
+      const schema = {
+        openapi: "3.1.0",
+        info: {
+          title: name || "LKOD MCP Server",
+          description: description || "MCP server pro přístup k otevřeným datům přes LKOD API",
+          version: "1.0.0",
+        },
+        servers: [
+          {
+            url: baseUrl,
+          },
+        ],
+        paths: {
+          "/catalog": {
+            get: {
+              operationId: "getCatalog",
+              summary: "Získat katalog dat",
+              parameters: [
+                {
+                  name: "publishers",
+                  in: "query",
+                  required: false,
+                  schema: {
+                    type: "string",
+                  },
+                  description: "Filtruje katalog podle identifikátoru publishera",
+                },
+                {
+                  name: "limit",
+                  in: "query",
+                  required: false,
+                  schema: {
+                    type: "integer",
+                  },
+                  description: "Maximální počet výsledků",
+                },
+                {
+                  name: "offset",
+                  in: "query",
+                  required: false,
+                  schema: {
+                    type: "integer",
+                  },
+                  description: "Offset pro stránkování",
+                },
+              ],
+              responses: {
+                "200": {
+                  description: "Úspěšná odpověď",
+                  content: {
+                    "application/json": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          datasets: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }
+
+      return JSON.stringify(schema, null, 2)
+    } catch (err) {
+      console.error("[v0] Error generating OpenAPI schema:", err)
+      return ""
+    }
+  }
 
   const handleGenerate = async () => {
     if (!apiUrl) return
@@ -25,6 +110,7 @@ export default function Home() {
     setIsGenerating(true)
     setProgress(0)
     setManifestUrl("")
+    setOpenApiSchema("")
     setError("")
 
     try {
@@ -57,6 +143,14 @@ export default function Home() {
       const mcpUrl = `${baseUrl}/api/mcp?${params.toString()}`
       console.log("[v0] Generated MCP URL:", mcpUrl)
 
+      const schema = generateOpenApiSchema(
+        apiUrl,
+        serverName || "LKOD MCP Server",
+        serverDescription || "MCP server pro přístup k otevřeným datům přes LKOD API",
+      )
+      setOpenApiSchema(schema)
+      console.log("[v0] Generated OpenAPI schema")
+
       setManifestUrl(mcpUrl)
       setIsGenerating(false)
       setProgressMessage("Hotovo!")
@@ -73,6 +167,12 @@ export default function Home() {
     navigator.clipboard.writeText(manifestUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleCopySchema = () => {
+    navigator.clipboard.writeText(openApiSchema)
+    setCopiedSchema(true)
+    setTimeout(() => setCopiedSchema(false), 2000)
   }
 
   return (
@@ -203,6 +303,34 @@ export default function Home() {
                     </div>
                     {copied && <p className="text-sm text-green-400">Zkopírováno do schránky!</p>}
                   </div>
+
+                  {openApiSchema && (
+                    <div className="space-y-2">
+                      <Label htmlFor="openApiSchema" className="text-white">
+                        OpenAPI Schema pro ChatGPT Actions
+                      </Label>
+                      <div className="space-y-2">
+                        <Textarea
+                          id="openApiSchema"
+                          value={openApiSchema}
+                          readOnly
+                          rows={12}
+                          className="bg-slate-800 border-slate-700 text-white font-mono text-xs resize-none"
+                        />
+                        <Button
+                          onClick={handleCopySchema}
+                          variant="outline"
+                          className="w-full border-slate-700 hover:bg-slate-800 bg-transparent"
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          {copiedSchema ? "Zkopírováno!" : "Zkopírovat OpenAPI Schema"}
+                        </Button>
+                      </div>
+                      <p className="text-sm text-slate-400">
+                        Toto schema můžete vložit do ChatGPT Actions pro přímé volání LKOD API
+                      </p>
+                    </div>
+                  )}
 
                   <Card className="bg-slate-800/50 border-slate-700">
                     <CardHeader>
