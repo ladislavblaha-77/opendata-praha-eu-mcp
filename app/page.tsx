@@ -24,27 +24,30 @@ export default function Home() {
   const generateOpenApiSchema = (apiUrl: string, name: string, description: string) => {
     try {
       const url = new URL(apiUrl)
-      const baseUrl = `${url.protocol}//${url.host}${url.pathname.replace(/\/$/, "")}`
+      const baseUrl = `${url.protocol}//${url.host}${url.pathname.replace(/\/$/, "")}?format=json`
 
       const schema = {
         openapi: "3.1.0",
         info: {
           title: name || "LKOD MCP Server",
-          description:
-            (description || "MCP server pro přístup k otevřeným datům přes LKOD API") +
-            "\n\nAutomaticky detekuje a zpracovává JSON-LD formát.",
+          description: (description || "MCP server pro přístup k otevřeným datům přes LKOD API") + " (JSON režim).",
           version: "1.0.0",
+        },
+        "x-mcp": {
+          name: "lkod_api",
+          description: "LKOD MCP Server – přístup k datům Prahy (formát JSON)",
         },
         servers: [
           {
             url: baseUrl,
+            description: "LKOD Open Data API - JSON režim",
           },
         ],
         paths: {
           "/catalog": {
             get: {
-              operationId: "getCatalog",
-              summary: "Získat katalog dat (podporuje JSON-LD)",
+              operationId: "getCatalogLKOD",
+              summary: "Získat katalog dat (JSON formát)",
               parameters: [
                 {
                   name: "publishers",
@@ -76,7 +79,7 @@ export default function Home() {
               ],
               responses: {
                 "200": {
-                  description: "Úspěšná odpověď (JSON-LD automaticky převeden na JSON)",
+                  description: "Úspěšná odpověď (čistý JSON)",
                   content: {
                     "application/json": {
                       schema: {
@@ -111,8 +114,8 @@ export default function Home() {
           },
           "/dataset": {
             get: {
-              operationId: "getDatasetList",
-              summary: "Získat seznam datových sad (podporuje JSON-LD)",
+              operationId: "getDatasetListLKOD",
+              summary: "Získat seznam datových sad (JSON formát)",
               parameters: [
                 {
                   name: "publisher",
@@ -144,7 +147,7 @@ export default function Home() {
               ],
               responses: {
                 "200": {
-                  description: "Seznam datových sad (JSON-LD automaticky převeden)",
+                  description: "Seznam datových sad (čistý JSON)",
                   content: {
                     "application/json": {
                       schema: {
