@@ -127,6 +127,15 @@ export default function Home() {
                   description: "Filtruje podle publishera",
                 },
                 {
+                  name: "theme",
+                  in: "query",
+                  required: false,
+                  schema: {
+                    type: "string",
+                  },
+                  description: "Filtruje podle tématu datové sady (např. finance, doprava, kultura)",
+                },
+                {
                   name: "limit",
                   in: "query",
                   required: false,

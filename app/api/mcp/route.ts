@@ -56,15 +56,17 @@ const handler = createMcpHandler(
 
     server.tool(
       "get_dataset_list",
-      "Vrací seznam všech datových sad publikovaných MHMP (včetně názvů, IRI a popisu).",
+      "Vrací seznam všech datových sad publikovaných MHMP (včetně názvů, IRI a popisu). Podporuje filtrování podle tématu.",
       {
+        theme: z.string().optional().describe("Filtruje podle tématu (např. finance, doprava, kultura)"),
         limit: z.number().optional().describe("Maximální počet výsledků"),
         offset: z.number().optional().describe("Offset pro stránkování"),
       },
-      async ({ limit, offset }, { request }) => {
+      async ({ theme, limit, offset }, { request }) => {
         try {
           let datasetUrl = "https://api.opendata.praha.eu/lod/catalog?format=json&publishers[]=mhmp"
 
+          if (theme) datasetUrl += `&themes[]=${encodeURIComponent(theme)}`
           if (limit) datasetUrl += `&limit=${limit}`
           if (offset) datasetUrl += `&offset=${offset}`
 
