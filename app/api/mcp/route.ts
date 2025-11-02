@@ -64,7 +64,7 @@ const handler = createMcpHandler(
       },
       async ({ theme, limit, offset }, { request }) => {
         try {
-          let datasetUrl = "https://api.opendata.praha.eu/lod/dataset?format=json&publisher=mhmp"
+          let datasetUrl = "https://api.opendata.praha.eu/lod/datasets?format=json&publisher=mhmp"
 
           if (theme) datasetUrl += `&themes[]=${encodeURIComponent(theme)}`
           if (limit) datasetUrl += `&limit=${limit}`

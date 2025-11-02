@@ -125,7 +125,7 @@ export default function Home() {
               },
             },
           },
-          "/dataset": {
+          "/datasets": {
             get: {
               operationId: "getDatasetListLKOD",
               summary: "Získat seznam datových sad (JSON formát)",
