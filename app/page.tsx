@@ -24,7 +24,9 @@ export default function Home() {
   const generateOpenApiSchema = (apiUrl: string, name: string, description: string) => {
     try {
       const url = new URL(apiUrl)
-      const baseUrl = `${url.protocol}//${url.host}${url.pathname.replace(/\/$/, "")}?format=json`
+      const pathParts = url.pathname.split("/").filter(Boolean)
+      const basePath = pathParts.length > 0 ? `/${pathParts[0]}` : ""
+      const baseUrl = `${url.protocol}//${url.host}${basePath}?format=json`
 
       const schema = {
         openapi: "3.1.0",
