@@ -127,7 +127,7 @@ export default function Home() {
                   description: "Filtruje podle publishera",
                 },
                 {
-                  name: "theme",
+                  name: "themes[]",
                   in: "query",
                   required: false,
                   schema: {
