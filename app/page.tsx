@@ -26,7 +26,7 @@ export default function Home() {
       const url = new URL(apiUrl)
       const pathParts = url.pathname.split("/").filter(Boolean)
       const basePath = pathParts.length > 0 ? `/${pathParts[0]}` : ""
-      const baseUrl = `${url.protocol}//${url.host}${basePath}?format=json`
+      const baseUrl = `${url.protocol}//${url.host}${basePath}`
 
       const schema = {
         openapi: "3.1.0",
@@ -52,7 +52,18 @@ export default function Home() {
               summary: "Získat katalog dat (JSON formát)",
               parameters: [
                 {
-                  name: "publishers",
+                  name: "format",
+                  in: "query",
+                  required: true,
+                  schema: {
+                    type: "string",
+                    enum: ["json"],
+                    default: "json",
+                  },
+                  description: "Formát odpovědi (vždy json)",
+                },
+                {
+                  name: "publishers[]",
                   in: "query",
                   required: false,
                   schema: {
@@ -119,6 +130,17 @@ export default function Home() {
               operationId: "getDatasetListLKOD",
               summary: "Získat seznam datových sad (JSON formát)",
               parameters: [
+                {
+                  name: "format",
+                  in: "query",
+                  required: true,
+                  schema: {
+                    type: "string",
+                    enum: ["json"],
+                    default: "json",
+                  },
+                  description: "Formát odpovědi (vždy json)",
+                },
                 {
                   name: "publisher",
                   in: "query",
